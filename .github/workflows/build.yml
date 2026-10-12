@@ -14,12 +14,23 @@ jobs:
           java-version: 21
       - name: Replace EntityLib dependency
         run: |
-          sed -i 's|^entityLib = .*|entityLib = { module = "com.github.Tofaa2.EntityLib:spigot", version = "2.4.11" }|' gradle/libs.versions.toml
+          sed -i 's|^entityLib = .*|entityLib = { module = "com.github.Tofaa2.EntityLib:spigot", version = "39cce79" }|' gradle/libs.versions.toml
+          grep -n "entityLib" gradle/libs.versions.toml
       - name: Remove LibsDisguises hook (dead repo)
         run: |
           rm src/main/java/org/alexdev/unlimitednametags/hook/LibsDisguisesHook.java
           sed -i '/isPluginEnabled("LibsDisguises")/,/^        }/d' src/main/java/org/alexdev/unlimitednametags/UnlimitedNameTags.java
           sed -i '/libs\.disguises/d' build.gradle.kts
+      - name: Warm up JitPack (EntityLib 39cce79)
+        run: |
+          for i in $(seq 1 45); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" https://jitpack.io/com/github/Tofaa2/EntityLib/spigot/39cce79/spigot-39cce79.pom)
+            echo "attempt $i: HTTP $code"
+            [ "$code" = "200" ] && exit 0
+            sleep 20
+          done
+          echo "---- JitPack build log ----"
+          curl -s https://jitpack.io/com/github/Tofaa2/EntityLib/39cce79/build.log | tail -40
       - run: chmod +x gradlew && ./gradlew shadowJar
       - uses: actions/upload-artifact@v4
         with:
