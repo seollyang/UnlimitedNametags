@@ -1,19 +1,31 @@
- name: build
- on: workflow_dispatch
- jobs:
-   build:
-     runs-on: ubuntu-latest
-     steps:
-       - uses: actions/checkout@v4
-         with:
-           repository: alexdev03/UnlimitedNametags
-           ref: 1.6.11
-       - uses: actions/setup-java@v4
-         with:
-           distribution: temurin
-           java-version: 21
-       - run: chmod +x gradlew && ./gradlew shadowJar
-       - uses: actions/upload-artifact@v4
-         with:
-           name: UnlimitedNametags
-           path: target/UnlimitedNametags.jar
+name: build
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: alexdev03/UnlimitedNametags
+          ref: 1.6.11
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Add Maven Central snapshots repo (libby)
+        run: |
+          sed -i 's|mavenCentral()|mavenCentral()\n    maven("https://central.sonatype.com/repository/maven-snapshots/")|' build.gradle.kts
+          grep -n "maven-snapshots" build.gradle.kts
+      - name: Warm up JitPack (EntityLib)
+        run: |
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" https://jitpack.io/com/github/Tofaa2/EntityLib/spigot/cef23ea/spigot-cef23ea.pom)
+            echo "attempt $i: HTTP $code"
+            [ "$code" = "200" ] && break
+            sleep 20
+          done
+      - run: chmod +x gradlew && ./gradlew shadowJar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UnlimitedNametags
+          path: target/UnlimitedNametags.jar
